@@ -1,5 +1,5 @@
-const express = require("express");
-const Post = require("../models/Post.js");
+import express from "express";
+import Post from "../models/Post.js";
 
 const router = express.Router();
 
@@ -79,4 +79,4 @@ router.post("/:postId/downvote", async (req, res) => {
   res.json({ upvotes: post.upvotes, userVote: alreadyDownvoted ? 0 : -1 });
 });
 
-module.exports = router;
+export default router;
