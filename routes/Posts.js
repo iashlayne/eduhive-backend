@@ -1,6 +1,7 @@
 import express from "express";
 import Post from "../models/Post.js";
 
+
 const router = express.Router();
 
 // Get all posts
@@ -79,5 +80,5 @@ router.post("/:postId/downvote", async (req, res) => {
 });
   
   
-
+const Post = mongoose.model("Post", PostSchema);
 export default router;
