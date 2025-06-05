@@ -1,6 +1,7 @@
+// routes/posts.js (ES Module)
+
 import express from "express";
 import Post from "../models/Post.js";
-
 
 const router = express.Router();
 
@@ -10,75 +11,84 @@ router.get("/", async (req, res) => {
     const posts = await Post.find().sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
+    console.error("Error fetching posts:", err);
     res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
 
 // Create a new post
 router.post("/", async (req, res) => {
-  console.log("Incoming POST:", req.body); // Add this
-
+  console.log("Incoming POST:", req.body);
   try {
     const newPost = new Post(req.body);
     await newPost.save();
     res.status(201).json(newPost);
   } catch (err) {
-    console.error("Error saving post:", err); // And this
+    console.error("Error saving post:", err);
     res.status(400).json({ error: "Failed to create post" });
   }
 });
 
+// Upvote a post
 router.post("/:postId/upvote", async (req, res) => {
-  const { userId } = req.body;
-  const post = await Post.findById(req.params.postId);
+  try {
+    const { userId } = req.body;
+    const post = await Post.findById(req.params.postId);
 
-  if (!post) return res.status(404).send("Post not found");
+    if (!post) return res.status(404).json({ error: "Post not found" });
 
-  const alreadyUpvoted = post.upvotedBy.includes(userId);
-  const alreadyDownvoted = post.downvotedBy.includes(userId);
+    const alreadyUpvoted = post.upvotedBy.includes(userId);
+    const alreadyDownvoted = post.downvotedBy.includes(userId);
 
-  if (alreadyUpvoted) {
-    post.upvotedBy.pull(userId);
-    post.upvotes -= 1;
-  } else {
-    if (alreadyDownvoted) {
-      post.downvotedBy.pull(userId);
-      post.upvotes += 1;
-    }
-    post.upvotedBy.push(userId);
-    post.upvotes += 1;
-  }
-
-  await post.save();
-  res.json({ upvotes: post.upvotes, userVote: alreadyUpvoted ? 0 : 1 });
-});
-  
-
-router.post("/:postId/downvote", async (req, res) => {
-  const { userId } = req.body;
-  const post = await Post.findById(req.params.postId);
-
-  if (!post) return res.status(404).send("Post not found");
-
-  const alreadyUpvoted = post.upvotedBy.includes(userId);
-  const alreadyDownvoted = post.downvotedBy.includes(userId);
-
-  if (alreadyDownvoted) {
-    post.downvotedBy.pull(userId);
-    post.upvotes += 1;
-  } else {
     if (alreadyUpvoted) {
       post.upvotedBy.pull(userId);
       post.upvotes -= 1;
+    } else {
+      if (alreadyDownvoted) {
+        post.downvotedBy.pull(userId);
+        post.upvotes += 1;
+      }
+      post.upvotedBy.push(userId);
+      post.upvotes += 1;
     }
-    post.downvotedBy.push(userId);
-    post.upvotes -= 1;
-  }
 
-  await post.save();
-  res.json({ upvotes: post.upvotes, userVote: alreadyDownvoted ? 0 : -1 });
+    await post.save();
+    res.json({ upvotes: post.upvotes, userVote: alreadyUpvoted ? 0 : 1 });
+  } catch (err) {
+    console.error("Error upvoting post:", err);
+    res.status(500).json({ error: "Failed to upvote post" });
+  }
 });
-  
-  
-const Post = mongoose.model("Post", PostSchema);
+
+// Downvote a post
+router.post("/:postId/downvote", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    const alreadyUpvoted = post.upvotedBy.includes(userId);
+    const alreadyDownvoted = post.downvotedBy.includes(userId);
+
+    if (alreadyDownvoted) {
+      post.downvotedBy.pull(userId);
+      post.upvotes += 1;
+    } else {
+      if (alreadyUpvoted) {
+        post.upvotedBy.pull(userId);
+        post.upvotes -= 1;
+      }
+      post.downvotedBy.push(userId);
+      post.upvotes -= 1;
+    }
+
+    await post.save();
+    res.json({ upvotes: post.upvotes, userVote: alreadyDownvoted ? 0 : -1 });
+  } catch (err) {
+    console.error("Error downvoting post:", err);
+    res.status(500).json({ error: "Failed to downvote post" });
+  }
+});
+
 export default router;
